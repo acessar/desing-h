@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style Men - Moda Masculina</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- GSAP para animações suaves -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- GSAP ScrollTrigger para parallax avançado -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+</head>
+
+<body>
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Header com Ondas Animadas usando Canvas -->
+    <header class="animated-waves-header">
+        <!-- Canvas para ondas fluidas -->
+        <canvas id="waves-canvas" class="waves-canvas"></canvas>
+
+        <!-- Conteúdo do Header -->
+        <div class="hero-content">
+            <div class="logo-container">
+                <img src="https://i.postimg.cc/NMR1ZRyN/Icarus.jpg" alt="Style Men Logo">
+            </div>
+            <p>Moda Masculina de Qualidade</p>
+        </div>
+    </header>
+
+    <div class="contact-grid">
+        <!-- Agenda -->
+        <div class="button-container fade-in-element">
+            <button class="main-button" onclick="openModal()">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
+                    <circle cx="8" cy="15" r="1" fill="currentColor" />
+                    <circle cx="12" cy="15" r="1" fill="currentColor" />
+                    <circle cx="16" cy="15" r="1" fill="currentColor" />
+                    <circle cx="8" cy="19" r="1" fill="currentColor" />
+                    <circle cx="12" cy="19" r="1" fill="currentColor" />
+                </svg>
+                <span>Agende Conosco</span>
+            </button>
+            <p class="text">Tire suas dúvidas sobre nossos produtos</p>
+        </div>
+
+        <!-- Instagram -->
+        <div class="button-container fade-in-element">
+            <a class="main-button" href="https://instagram.com/stylemenoficial" target="_blank">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="currentColor" stroke-width="2" />
+                    <path d="m16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="currentColor" stroke-width="2" />
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="currentColor" stroke-width="2" />
+                </svg>
+                <span>Siga no Instagram</span>
+            </a>
+            <p class="text">Veja nossos looks e novidades</p>
+        </div>
+
+        <!-- Facebook -->
+        <div class="button-container fade-in-element">
+            <a class="main-button" href="https://facebook.com/stylemenoficial" target="_blank">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke="currentColor"
+                        stroke-width="2" />
+                </svg>
+                <span>Curta no Facebook</span>
+            </a>
+            <p class="text">Fique por dentro das promoções</p>
+        </div>
+
+        <!-- Carrossel de Serviços -->
+        <section class="services-carousel-section">
+            <div class="services-carousel-container">
+                <div class="services-carousel" id="servicesCarousel">
+
+                    <div class="service-card" onclick="openModal()">
+                        <div class="service-card-image" style="background-image: url('neutro2.jpg');">
+                            <div class="service-card-overlay"></div>
+                            <div class="service-card-content">
+                                <h3 class="service-card-title">Camisas Sociais</h3>
+                                <p class="service-card-description">Elegância e sofisticação</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card" onclick="openModal()">
+                        <div class="service-card-image" style="background-image: url('neutro.jpg');">
+                            <div class="service-card-overlay"></div>
+                            <div class="service-card-content">
+                                <h3 class="service-card-title">Conjuntos Premium</h3>
+                                <p class="service-card-description">Estilo para o dia a dia</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card" onclick="openModal()">
+                        <div class="service-card-image" style="background-image: url('neutrocalca.jpg');">
+                            <div class="service-card-overlay"></div>
+                            <div class="service-card-content">
+                                <h3 class="service-card-title">Calças e Jeans</h3>
+                                <p class="service-card-description">Conforto e versatilidade</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="service-card" onclick="openModal()">
+                        <div class="service-card-image" style="background-image: url('objeto.jpg');">
+                            <div class="service-card-overlay"></div>
+                            <div class="service-card-content">
+                                <h3 class="service-card-title">Acessórios & Outros</h3>
+                                <p class="service-card-description">Complete seu visual</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <div class="container">
+            <section class="contact-section">
+                <!-- Mapa -->
+                <div class="map-container fade-in-element">
+                    <div class="map-wrapper">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3958.597544836739!2d-34.8733876!3d-7.1194958!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x7ace810852ae4f1%3A0xaf5445223401f2bb!2sJo%C3%A3o%20Pessoa%2C%20PB!5e0!3m2!1spt-BR!2sbr!4v1234567890"
+                            allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </div>
+
+    <!-- Footer minimalista -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-bottom">
+                <p>&copy; 2025 Icarus - Moda Masculina. Todos os direitos reservados.
+                <p class="text-footer"> Crie seu serviço on-line com a <a
+                        href="http://acessar.github.io/dezaincode.com.br" target="_blank">Dezaincode</a></p>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal do Formulário -->
+    <div id="formModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal()">&times;</button>
+            <div class="modal-header">
+                <h3 class="modal-title">Fale Conosco</h3>
+                <p class="modal-subtitle">
+                    Preencha seus dados para conhecer nossos produtos e receber ofertas exclusivas.<br>
+                    Suas informações serão enviadas diretamente para nosso WhatsApp.
+                </p>
+            </div>
+
+            <form id="whatsappForm">
+                <div class="form-group">
+                    <label for="nome">Seu Nome</label>
+                    <input type="text" id="nome" name="nome" required
+                        placeholder="Como você gostaria de ser chamado(a)?">
+                </div>
+
+                <div class="form-group">
+                    <label for="telefone">Telefone</label>
+                    <input type="tel" id="telefone" name="telefone" placeholder="(83) 99999-9999" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="endereco">Endereço (opcional)</label>
+                    <input type="text" id="endereco" name="endereco"
+                        placeholder="Para eventual entrega ou visita à loja">
+                </div>
+
+                <div class="form-group">
+                    <label for="tamanho">Categoria de Interesse</label>
+                    <select id="tamanho" name="tamanho">
+                        <option value="">Selecione (opcional)</option>
+                        <option value="Camisetas">Camisetas</option>
+                        <option value="Camisas Sociais">Camisas Sociais</option>
+                        <option value="Calças Jeans">Calças Jeans</option>
+                        <option value="Calças Sociais">Calças Sociais</option>
+                        <option value="Bermudas">Bermudas</option>
+                        <option value="Acessórios">Acessórios</option>
+                        <option value="Conjunto Completo">Conjunto Completo</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="mensagem">O que você está procurando? (opcional)</label>
+                    <textarea id="mensagem" name="mensagem"
+                        placeholder="Ex: Roupas para trabalho, casual, festa, tamanho específico..."></textarea>
+                </div>
+
+                <button type="submit" class="submit-button">
+                    <span class="button-text">Enviar para WhatsApp</span>
+                    <div class="loading-spinner"></div>
+                </button>
+            </form>
+
+            <div id="successMessage" class="success-message">
+                <h3>✓ Enviado com sucesso!</h3>
+                <p>Redirecionando para o WhatsApp...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
