@@ -1,381 +1,538 @@
 /* =========================================
-   STYLE MEN - SCRIPT COMPLETO COM ONDAS AVANÇADAS
+   ICARUS - Premium Mobile-First Script
+   Infinite Loop Carousel with Smooth Transitions
    ========================================= */
 
-// --- 1. LOADER ---
-window.addEventListener('load', function() {
+// --- Loader ---
+window.addEventListener('load', () => {
     setTimeout(() => {
         const loader = document.getElementById('loader');
-        if (loader) {
-            loader.classList.add('hidden');
-        }
-    }, 800);
+        if (loader) loader.classList.add('hidden');
+    }, 600);
 });
 
-// --- 2. ANIMAÇÕES FADE-IN NO SCROLL ---
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -30px 0px'
-};
+// --- Infinite Loop Carousel Class ---
+class InfiniteCarousel {
+    constructor(options = {}) {
+        // Configurações padrão
+        this.config = {
+            containerSelector: '.products',
+            wrapperSelector: '.products__wrapper',
+            carouselSelector: '.products__carousel',
+            cardSelector: '.product-card',
+            indicatorsSelector: '.products__indicators',
+            autoplay: true,
+            autoplayInterval: 4000,
+            transitionDuration: 1000, // Transição mais longa para movimento fluido
+            pauseOnHover: true,
+            ...options
+        };
 
-const observer = new IntersectionObserver(function(entries) {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-        }
-    });
-}, observerOptions);
+        // Estado
+        this.currentIndex = 0;
+        this.totalSlides = 0;
+        this.autoplayTimer = null;
+        this.isPlaying = this.config.autoplay;
+        this.isDragging = false;
+        this.isTransitioning = false;
+        this.startX = 0;
+        this.currentX = 0;
+        this.dragThreshold = 50;
+        this.animationFrame = null;
+        this.jumpTimeout = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.fade-in-element').forEach(el => {
-        observer.observe(el);
-    });
-    
-    // Carregar imagens de fundo dos cards
-    loadCardBackgroundImages();
-    
-    // Inicializar ondas avançadas
-    initAdvancedWaves();
-});
+        // Elementos DOM
+        this.container = null;
+        this.wrapper = null;
+        this.carousel = null;
+        this.cards = [];
+        this.originalCards = [];
+        this.indicators = null;
+        this.dots = [];
 
-// --- 3. ONDAS AVANÇADAS COM CANVAS E GSAP ---
-function initAdvancedWaves() {
-    const canvas = document.getElementById('waves-canvas');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    let animationId;
-    let time = 0;
-    
-    // Configurações das ondas
-    const waves = [
-        {
-            amplitude: 40,
-            frequency: 0.015,
-            speed: 0.008,
-            color: { r: 255, g: 229, b: 241 }, // Rosa Quartz
-            opacity: 0.6,
-            offset: 0,
-            blur: 2
-        },
-        {
-            amplitude: 50,
-            frequency: 0.012,
-            speed: 0.01,
-            color: { r: 255, g: 133, b: 184 }, // Rosa Pastel
-            opacity: 0.7,
-            offset: Math.PI / 3,
-            blur: 1.5
-        },
-        {
-            amplitude: 45,
-            frequency: 0.018,
-            speed: 0.012,
-            color: { r: 255, g: 77, b: 148 }, // Rosa Vibrante
-            opacity: 0.65,
-            offset: Math.PI / 2,
-            blur: 1
-        },
-        {
-            amplitude: 35,
-            frequency: 0.02,
-            speed: 0.009,
-            color: { r: 255, g: 107, b: 168 }, // Rosa Neon
-            opacity: 0.5,
-            offset: Math.PI / 4,
-            blur: 0.8
-        },
-        {
-            amplitude: 30,
-            frequency: 0.025,
-            speed: 0.007,
-            color: { r: 255, g: 255, b: 255 }, // Highlight Branco
-            opacity: 0.3,
-            offset: Math.PI / 6,
-            blur: 1.2
-        }
-    ];
-    
-    // Função para redimensionar canvas
-    function resizeCanvas() {
-        const header = document.querySelector('.animated-waves-header');
-        if (header) {
-            canvas.width = window.innerWidth;
-            canvas.height = header.offsetHeight;
+        this.init();
+    }
+
+    init() {
+        this.container = document.querySelector(this.config.containerSelector);
+        if (!this.container) return;
+
+        this.wrapper = this.container.querySelector(this.config.wrapperSelector);
+        this.carousel = this.container.querySelector(this.config.carouselSelector);
+        this.originalCards = [...this.carousel.querySelectorAll(this.config.cardSelector)];
+        this.indicators = this.container.querySelector(this.config.indicatorsSelector);
+
+        this.totalSlides = this.originalCards.length;
+
+        if (this.totalSlides === 0) return;
+
+        // Configurar carousel infinito
+        this.setupInfiniteCarousel();
+        this.createIndicators();
+        this.bindEvents();
+        
+        // Inicializar na posição correta (primeiro card real)
+        setTimeout(() => {
+            this.goToSlide(0, false);
+        }, 100);
+
+        // Iniciar autoplay
+        if (this.config.autoplay) {
+            setTimeout(() => {
+                this.startAutoplay();
+            }, 1000);
         }
     }
-    
-    // Função para desenhar uma onda
-    function drawWave(wave, yOffset = 0) {
-        ctx.save();
-        ctx.globalAlpha = wave.opacity;
-        ctx.filter = `blur(${wave.blur}px)`;
+
+    setupInfiniteCarousel() {
+        // Clonar cards para criar loop infinito
+        // Estrutura: [clone último] [clone penúltimo] [originais...] [clone primeiro] [clone segundo]
         
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height / 2 + yOffset);
+        const fragment = document.createDocumentFragment();
         
-        for (let x = 0; x <= canvas.width; x += 2) {
-            const y = canvas.height / 2 + yOffset + 
-                Math.sin(x * wave.frequency + time * wave.speed + wave.offset) * wave.amplitude +
-                Math.cos(x * wave.frequency * 0.7 + time * wave.speed * 1.3) * wave.amplitude * 0.5;
-            
-            ctx.lineTo(x, y);
+        // Clonar os últimos 2 cards e adicionar no início
+        for (let i = this.totalSlides - 1; i >= Math.max(0, this.totalSlides - 2); i--) {
+            const clone = this.originalCards[i].cloneNode(true);
+            clone.classList.add('clone');
+            clone.setAttribute('data-clone', 'prepend');
+            clone.setAttribute('data-original-index', i);
+            this.carousel.insertBefore(clone, this.carousel.firstChild);
         }
         
-        // Gradiente para cada onda
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, `rgba(${wave.color.r}, ${wave.color.g}, ${wave.color.b}, ${wave.opacity})`);
-        gradient.addColorStop(0.5, `rgba(${wave.color.r}, ${wave.color.g}, ${wave.color.b}, ${wave.opacity * 0.7})`);
-        gradient.addColorStop(1, `rgba(${wave.color.r}, ${wave.color.g}, ${wave.color.b}, 0)`);
+        // Clonar os primeiros 2 cards e adicionar no final
+        for (let i = 0; i < Math.min(2, this.totalSlides); i++) {
+            const clone = this.originalCards[i].cloneNode(true);
+            clone.classList.add('clone');
+            clone.setAttribute('data-clone', 'append');
+            clone.setAttribute('data-original-index', i);
+            this.carousel.appendChild(clone);
+        }
+
+        // Atualizar lista de cards (incluindo clones)
+        this.cards = [...this.carousel.querySelectorAll(this.config.cardSelector)];
         
-        ctx.fillStyle = gradient;
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.lineTo(0, canvas.height);
-        ctx.closePath();
-        ctx.fill();
+        // Número de clones no início
+        this.clonesBefore = Math.min(2, this.totalSlides);
         
-        ctx.restore();
+        // Configurar transição linear para movimento contínuo
+        this.carousel.style.transition = `transform ${this.config.transitionDuration}ms linear`;
     }
-    
-    // Função de animação
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Desenhar cada onda com offset vertical
-        waves.forEach((wave, index) => {
-            const yOffset = (index - 2) * 30; // Espaçamento vertical entre ondas
-            drawWave(wave, yOffset);
+
+    createIndicators() {
+        if (!this.indicators) return;
+
+        this.indicators.innerHTML = '';
+
+        // Criar dots apenas para cards originais
+        for (let i = 0; i < this.totalSlides; i++) {
+            const dot = document.createElement('button');
+            dot.className = 'products__dot';
+            dot.setAttribute('aria-label', `Ir para slide ${i + 1}`);
+            dot.addEventListener('click', () => {
+                this.goToSlide(i);
+                this.resetAutoplayTimer();
+            });
+            this.indicators.appendChild(dot);
+        }
+
+        this.dots = [...this.indicators.querySelectorAll('.products__dot')];
+    }
+
+    bindEvents() {
+        // Pausar autoplay no hover
+        if (this.config.pauseOnHover) {
+            this.container.addEventListener('mouseenter', () => this.pauseAutoplay());
+            this.container.addEventListener('mouseleave', () => this.resumeAutoplay());
+        }
+
+        // Mouse drag events
+        this.carousel.addEventListener('mousedown', (e) => this.handleDragStart(e));
+        this.carousel.addEventListener('mousemove', (e) => this.handleDragMove(e));
+        this.carousel.addEventListener('mouseup', (e) => this.handleDragEnd(e));
+        this.carousel.addEventListener('mouseleave', (e) => {
+            if (this.isDragging) this.handleDragEnd(e);
         });
-        
-        // Incrementar tempo para animação contínua
-        time += 0.02;
-        
-        animationId = requestAnimationFrame(animate);
-    }
-    
-    // Inicializar
-    resizeCanvas();
-    animate();
-    
-    // Redimensionar ao mudar tamanho da janela
-    window.addEventListener('resize', () => {
-        resizeCanvas();
-    });
-    
-    // Parallax suave com GSAP ScrollTrigger (se disponível)
-    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
-        
-        gsap.to(canvas, {
-            y: -80,
-            ease: 'none',
-            scrollTrigger: {
-                trigger: canvas,
-                start: 'top top',
-                end: 'bottom top',
-                scrub: 1.5
+
+        // Touch events
+        this.carousel.addEventListener('touchstart', (e) => this.handleDragStart(e), { passive: true });
+        this.carousel.addEventListener('touchmove', (e) => this.handleDragMove(e), { passive: true });
+        this.carousel.addEventListener('touchend', (e) => this.handleDragEnd(e));
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+
+        // Resize handler
+        window.addEventListener('resize', () => this.handleResize());
+
+        // Visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.pauseAutoplay();
+            } else {
+                this.resumeAutoplay();
             }
         });
+
+        // Listener para fim da transição (para o loop infinito)
+        this.carousel.addEventListener('transitionend', () => this.handleTransitionEnd());
+    }
+
+    getCardWidth() {
+        return this.cards[0].offsetWidth;
+    }
+
+    getWrapperWidth() {
+        return this.wrapper ? this.wrapper.offsetWidth : this.carousel.parentElement.offsetWidth;
+    }
+
+    goToSlide(index, animate = true) {
+        this.currentIndex = index;
+        
+        const realIndex = index + this.clonesBefore;
+        const cardWidth = this.getCardWidth();
+        const wrapperWidth = this.getWrapperWidth();
+        const centerOffset = (wrapperWidth - cardWidth) / 2;
+        const translateX = -(realIndex * cardWidth) + centerOffset;
+
+        if (animate) {
+            // Aplicar transição suave
+            this.carousel.style.transition = `transform ${this.config.transitionDuration}ms linear`;
+        } else {
+            this.carousel.style.transition = 'none';
+        }
+
+        // Aplicar transformação imediatamente
+        this.carousel.style.transform = `translateX(${translateX}px)`;
+
+        if (!animate) {
+            // Forçar reflow para aplicar mudança
+            void this.carousel.offsetHeight;
+            // Restaurar transição
+            this.carousel.style.transition = `transform ${this.config.transitionDuration}ms linear`;
+            this.isTransitioning = false;
+        }
+
+        this.updateActiveStates();
+    }
+
+    handleTransitionEnd() {
+        // Não fazer nada aqui - permitir movimento contínuo
+        // O jump já foi feito durante a transição (via timeout em goToClone)
+        // Não resetar isTransitioning aqui para não causar pausas
+    }
+
+    jumpToSlide(index) {
+        // Limpar timeout do autoplay se estiver pendente para evitar conflito
+        if (this.autoplayTimer) {
+            clearTimeout(this.autoplayTimer);
+            this.autoplayTimer = null;
+        }
+        
+        // Limpar timeout do jump se ainda estiver pendente
+        if (this.jumpTimeout) {
+            clearTimeout(this.jumpTimeout);
+            this.jumpTimeout = null;
+        }
+        
+        // Jump instantâneo sem animação - fazer de forma completamente invisível
+        const realIndex = index + this.clonesBefore;
+        const cardWidth = this.getCardWidth();
+        const wrapperWidth = this.getWrapperWidth();
+        const centerOffset = (wrapperWidth - cardWidth) / 2;
+        const translateX = -(realIndex * cardWidth) + centerOffset;
+
+        // Fazer o jump de forma síncrona para evitar qualquer delay
+        // Desabilitar transição temporariamente
+        this.carousel.style.transition = 'none';
+        this.carousel.style.transform = `translateX(${translateX}px)`;
+        
+        // Forçar reflow para aplicar a mudança imediatamente
+        void this.carousel.offsetHeight;
+        
+        // Restaurar transição imediatamente
+        this.carousel.style.transition = `transform ${this.config.transitionDuration}ms linear`;
+        
+        // Resetar flag imediatamente
+        this.isTransitioning = false;
+        
+        // Atualizar estados imediatamente
+        this.updateActiveStates();
+        
+        // Iniciar próximo movimento IMEDIATAMENTE após o jump
+        // Sem usar requestAnimationFrame para evitar qualquer delay
+        // O jump já foi aplicado sincronamente acima
+        if (this.isPlaying && !this.isDragging) {
+            // Calcular próximo índice e posição diretamente
+            const nextIndex = this.currentIndex + 1;
+            if (nextIndex >= this.totalSlides) {
+                // Se passar do último, vai para o clone
+                this.currentIndex = this.totalSlides;
+                this.goToClone('next');
+            } else {
+                // Ir para o próximo card diretamente
+                this.goToSlide(nextIndex, true);
+            }
+            // Reagendar o próximo movimento do autoplay
+            this.scheduleNextAutoplay();
+        }
+    }
+    
+    scheduleNextAutoplay() {
+        if (!this.isPlaying || this.isDragging) return;
+        
+        // Agendar próximo movimento para começar ANTES da transição terminar
+        // Usar 92% para criar sobreposição e eliminar qualquer pausa
+        // Mas não muito cedo para não interferir com o jump
+        const overlapTime = this.config.transitionDuration * 0.92;
+        this.autoplayTimer = setTimeout(() => {
+            if (!this.isDragging && this.isPlaying) {
+                this.next();
+                // Agendar o próximo movimento imediatamente
+                this.scheduleNextAutoplay();
+            }
+        }, overlapTime);
+    }
+
+    updateActiveStates() {
+        // Normalizar índice para o range dos cards originais
+        let normalizedIndex = this.currentIndex;
+        if (normalizedIndex < 0) normalizedIndex = this.totalSlides - 1;
+        if (normalizedIndex >= this.totalSlides) normalizedIndex = 0;
+
+        // Atualizar todos os cards (incluindo clones)
+        this.cards.forEach((card, i) => {
+            const isOriginal = !card.classList.contains('clone');
+            const cardIndex = isOriginal 
+                ? this.originalCards.indexOf(card)
+                : parseInt(card.getAttribute('data-original-index'));
+            
+            card.classList.toggle('active', cardIndex === normalizedIndex);
+        });
+
+        // Atualizar dots
+        if (this.dots) {
+            this.dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === normalizedIndex);
+            });
+        }
+    }
+
+    next() {
+        // Não bloquear se estiver em transição - permitir movimento contínuo
+        // O jump já foi agendado em goToClone, então podemos continuar
+        
+        const nextIndex = this.currentIndex + 1;
+        
+        // Se passar do último, vai para o clone (que depois fará o jump invisível)
+        if (nextIndex >= this.totalSlides) {
+            this.currentIndex = this.totalSlides;
+            this.goToClone('next');
+        } else {
+            this.goToSlide(nextIndex, true);
+        }
+    }
+
+    prev() {
+        if (this.isTransitioning) return;
+        
+        // Voltar para o anterior
+        const prevIndex = this.currentIndex - 1;
+        
+        // Se passar do primeiro, vai para o clone (que depois fará o jump)
+        if (prevIndex < 0) {
+            this.currentIndex = -1; // Vai para o clone
+            this.goToClone('prev');
+        } else {
+            this.goToSlide(prevIndex);
+        }
+    }
+
+    goToClone(direction) {
+        // Não setar isTransitioning para permitir movimento contínuo
+        
+        let realIndex;
+        let targetIndex;
+        if (direction === 'next') {
+            // Clone do primeiro card está após os originais
+            realIndex = this.totalSlides + this.clonesBefore;
+            targetIndex = 0;
+        } else {
+            // Clone do último card está no início
+            realIndex = this.clonesBefore - 1;
+            targetIndex = this.totalSlides - 1;
+        }
+
+        const cardWidth = this.getCardWidth();
+        const wrapperWidth = this.getWrapperWidth();
+        const centerOffset = (wrapperWidth - cardWidth) / 2;
+        const translateX = -(realIndex * cardWidth) + centerOffset;
+
+        this.carousel.style.transition = `transform ${this.config.transitionDuration}ms linear`;
+        this.carousel.style.transform = `translateX(${translateX}px)`;
+
+        this.updateActiveStates();
+        
+        // Fazer o jump ANTES da transição terminar (85% da duração)
+        // Isso garante que o jump aconteça quando o card ainda está saindo da tela
+        // mas ainda visível o suficiente para o jump ser invisível
+        // E permite que o próximo movimento comece imediatamente após sem pausa
+        const jumpDelay = Math.max(50, this.config.transitionDuration * 0.85);
+        this.jumpTimeout = setTimeout(() => {
+            // Verificar se ainda estamos no clone antes de fazer o jump
+            if ((direction === 'next' && this.currentIndex >= this.totalSlides) ||
+                (direction === 'prev' && this.currentIndex < 0)) {
+                this.currentIndex = targetIndex;
+                this.jumpToSlide(this.currentIndex);
+            }
+        }, jumpDelay);
+    }
+
+    // =========================================
+    // AUTOPLAY
+    // =========================================
+    startAutoplay() {
+        if (!this.config.autoplay) return;
+        this.isPlaying = true;
+        
+        // Iniciar o primeiro movimento imediatamente
+        this.next();
+        this.scheduleNextAutoplay();
+    }
+
+    stopAutoplay() {
+        if (this.autoplayTimer) {
+            clearTimeout(this.autoplayTimer);
+            this.autoplayTimer = null;
+        }
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+        if (this.jumpTimeout) {
+            clearTimeout(this.jumpTimeout);
+            this.jumpTimeout = null;
+        }
+    }
+
+    pauseAutoplay() {
+        this.stopAutoplay();
+    }
+
+    resumeAutoplay() {
+        if (this.isPlaying && this.config.autoplay) {
+            this.stopAutoplay();
+            this.startAutoplay();
+        }
+    }
+
+    resetAutoplayTimer() {
+        if (this.isPlaying && this.config.autoplay) {
+            this.stopAutoplay();
+            this.startAutoplay();
+        }
+    }
+
+    // =========================================
+    // DRAG / TOUCH HANDLERS
+    // =========================================
+    handleDragStart(e) {
+        if (this.isTransitioning) return;
+        
+        this.isDragging = true;
+        this.startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+        this.carousel.classList.add('dragging');
+        this.carousel.style.cursor = 'grabbing';
+        this.pauseAutoplay();
+    }
+
+    handleDragMove(e) {
+        if (!this.isDragging) return;
+        if (e.type.includes('mouse')) e.preventDefault();
+        this.currentX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+    }
+
+    handleDragEnd(e) {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        this.carousel.classList.remove('dragging');
+        this.carousel.style.cursor = 'grab';
+
+        const diff = this.startX - this.currentX;
+
+        if (Math.abs(diff) > this.dragThreshold) {
+            if (diff > 0) {
+                this.next();
+            } else {
+                this.prev();
+            }
+            // Resetar autoplay após movimento manual
+            // Não iniciar movimento imediatamente, apenas agendar o próximo
+            if (this.isPlaying && this.config.autoplay) {
+                this.stopAutoplay();
+                // Agendar próximo movimento sem iniciar imediatamente
+                this.scheduleNextAutoplay();
+            }
+        } else {
+            // Se não houve movimento significativo, apenas retomar autoplay
+            this.resumeAutoplay();
+        }
+    }
+
+    // =========================================
+    // KEYBOARD NAVIGATION
+    // =========================================
+    handleKeyboard(e) {
+        if (this.isTransitioning) return;
+        
+        if (e.key === 'ArrowLeft') {
+            this.prev();
+            this.resetAutoplayTimer();
+        } else if (e.key === 'ArrowRight') {
+            this.next();
+            this.resetAutoplayTimer();
+        }
+    }
+
+    // =========================================
+    // RESIZE HANDLER
+    // =========================================
+    handleResize() {
+        this.goToSlide(this.currentIndex, false);
+    }
+
+    // =========================================
+    // PUBLIC API
+    // =========================================
+    destroy() {
+        this.stopAutoplay();
+    }
+
+    getState() {
+        return {
+            currentIndex: this.currentIndex,
+            totalSlides: this.totalSlides,
+            isPlaying: this.isPlaying
+        };
     }
 }
 
-// --- 4. EFEITO PARALLAX SUAVE ---
-window.addEventListener('scroll', function() {
-    const scrolled = window.pageYOffset;
-    const header = document.querySelector('.animated-waves-header');
-    
-    if (header) {
-        const rate = scrolled * -0.2;
-        header.style.transform = `translateY(${rate}px)`;
-    }
+// =========================================
+// INICIALIZAÇÃO
+// =========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const carousel = new InfiniteCarousel({
+        autoplay: true,
+        autoplayInterval: 2000, // Não usado mais, mas mantido para compatibilidade
+        transitionDuration: 3000, // Transição mais lenta para movimento mais suave
+        pauseOnHover: false // Não pausar no hover para movimento contínuo
+    });
+
+    window.carousel = carousel;
 });
 
-// --- 5. CARREGAR IMAGENS DE FUNDO DOS CARDS ---
-function loadCardBackgroundImages() {
-    const cardBackgrounds = document.querySelectorAll('.service-card-background');
-    
-    cardBackgrounds.forEach(cardBg => {
-        const imageName = cardBg.getAttribute('data-bg-image');
-        
-        if (imageName) {
-            // Define a imagem de fundo imediatamente
-            cardBg.style.backgroundImage = `url('${imageName}')`;
-            
-            // Pré-carrega a imagem para garantir que está disponível
-            const img = new Image();
-            
-            img.onload = function() {
-                // Imagem carregada com sucesso, aumenta opacidade
-                cardBg.style.opacity = '0.6';
-            };
-            
-            // Em caso de erro, mantém fundo escuro padrão
-            img.onerror = function() {
-                console.log(`Imagem ${imageName} não encontrada. Usando fundo padrão.`);
-                cardBg.style.backgroundImage = 'none';
-                cardBg.style.opacity = '0';
-            };
-            
-            // Tenta carregar a imagem
-            img.src = imageName;
-        }
-    });
-}
-
-// --- 6. REDIRECIONAR PARA WHATSAPP ---
-function redirectWhatsApp() {
-    const phoneNumber = '5583991816152';
-    const message = 'Olá! Gostaria de conhecer mais sobre os produtos Style Men.';
-    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    
-    window.open(whatsappURL, '_blank', 'noopener,noreferrer');
-}
-
-// --- 7. MODAL E FORMULÁRIO ---
-function openModal() {
-    const modal = document.getElementById('formModal');
-    if (modal) {
-        modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function closeModal() {
-    const modal = document.getElementById('formModal');
-    if (modal) {
-        modal.classList.remove('show');
-        document.body.style.overflow = 'auto';
-        
-        // Resetar formulário
-        const form = document.getElementById('whatsappForm');
-        if (form) form.reset();
-        
-        // Resetar mensagens e botões
-        const successMsg = document.getElementById('successMessage');
-        if (successMsg) successMsg.classList.remove('show');
-        
-        const submitButton = document.querySelector('.submit-button');
-        if (submitButton) {
-            submitButton.classList.remove('loading');
-            submitButton.disabled = false;
-        }
-    }
-}
-
-// Fechar modal ao clicar fora (Overlay)
-const modalOverlay = document.getElementById('formModal');
-if (modalOverlay) {
-    modalOverlay.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal();
-        }
-    });
-}
-
-// Fechar modal com tecla ESC
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeModal();
-    }
-});
-
-// --- 8. MÁSCARA E VALIDAÇÃO DE TELEFONE ---
-const inputTelefone = document.getElementById('telefone');
-if (inputTelefone) {
-    inputTelefone.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-        let formattedValue = '';
-        
-        if (value.length > 0) {
-            formattedValue = '(' + value.substring(0, 2);
-        }
-        if (value.length > 2) {
-            formattedValue += ') ' + value.substring(2, 7);
-        }
-        if (value.length > 7) {
-            formattedValue += '-' + value.substring(7, 11);
-        }
-        
-        e.target.value = formattedValue;
-    });
-}
-
-function isValidPhone(phone) {
-    const cleanPhone = phone.replace(/\D/g, '');
-    return cleanPhone.length >= 10;
-}
-
-// --- 9. ENVIO PARA WHATSAPP ---
-const formWhatsapp = document.getElementById('whatsappForm');
-if (formWhatsapp) {
-    formWhatsapp.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const submitButton = document.querySelector('.submit-button');
-        submitButton.classList.add('loading');
-        submitButton.disabled = true;
-        
-        // Coletar dados
-        const nome = document.getElementById('nome').value.trim();
-        const telefone = document.getElementById('telefone').value.trim();
-        const endereco = document.getElementById('endereco').value.trim();
-        const tamanho = document.getElementById('tamanho').value;
-        const mensagem = document.getElementById('mensagem').value.trim();
-        
-        // Validações
-        if (!nome || !telefone) {
-            alert('Por favor, preencha seu nome e telefone.');
-            submitButton.classList.remove('loading');
-            submitButton.disabled = false;
-            return;
-        }
-        
-        if (!isValidPhone(telefone)) {
-            alert('Por favor, digite um telefone válido.');
-            submitButton.classList.remove('loading');
-            submitButton.disabled = false;
-            return;
-        }
-        
-        // Montar mensagem
-        let whatsappMessage = `👔 *Style Men - Interesse em Nossos Produtos*\n\n`;
-        whatsappMessage += `👤 *Nome:* ${nome}\n`;
-        whatsappMessage += `📱 *Telefone:* ${telefone}\n`;
-        
-        if (endereco) whatsappMessage += `📍 *Endereço:* ${endereco}\n`;
-        if (tamanho) whatsappMessage += `👕 *Categoria:* ${tamanho}\n`;
-        if (mensagem) whatsappMessage += `💬 *Detalhes:* ${mensagem}\n`;
-        
-        whatsappMessage += `\n_Gostaria de conhecer nossos produtos e receber ofertas! 🛍_`;
-        
-        const whatsappNumber = '5583991816152';
-        
-        // Processar e redirecionar
-        setTimeout(() => {
-            const successMsg = document.getElementById('successMessage');
-            if (successMsg) successMsg.classList.add('show');
-            
-            setTimeout(() => {
-                const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
-                
-                try {
-                    const newWindow = window.open(whatsappURL, '_blank');
-                    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-                        window.location.href = whatsappURL;
-                    }
-                } catch (error) {
-                    window.location.href = whatsappURL;
-                }
-                
-                setTimeout(closeModal, 500);
-            }, 1000);
-        }, 600);
-    });
-}
-
-// Smooth scroll para links internos
+// --- Smooth scroll for anchor links ---
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    anchor.addEventListener('click', function(e) {
         const targetId = this.getAttribute('href');
         if (targetId === '#') return;
         
@@ -389,8 +546,3 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
-
-// Detecção de Touch Device
-if ('ontouchstart' in window) {
-    document.body.classList.add('touch-device');
-}
